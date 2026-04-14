@@ -1,23 +1,45 @@
 import { useState } from "react";
-import { SearchRepositoriesResDto } from "../types/searchRepositoriesResDto";
+import { SearchRepositoriesResDtoApi } from "../types/SearchRepositoriesResDtoApi";
 import { searchRepositories } from "../api/searchApi";
-import { SearchRepositoriesHeaderLinkDto } from "../types/SearchRepositoriesHeaderLinkDto";
+import { useRepositoriesStore } from "../types/RepositoriesStore";
+import { RepositoriesDetailItemDto } from "../types/RepositoriesDetailItemDto";
 
 export function useSearchRepositories() {
   const [query, setQuery] = useState("");
-  const [repositories, setRepositories] = useState<SearchRepositoriesResDto>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-  const [links, setLinks] = useState<SearchRepositoriesHeaderLinkDto>();
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(30);
+  const { repositories, meta, setSearchResult } = useRepositoriesStore();
+
   const handleSearch = async () => {
     if (!query) return;
     setLoading(true);
     setError(false);
     try {
-      const response = await searchRepositories(query);
-      setRepositories(response.data);
-      console.log(response.headers);
-      setLinks(parseLinkHeader(response.headers.link));
+      const response = await searchRepositories(query, page, perPage);
+      setSearchResult({
+        repositories: response.data.items.map(convertItem),
+        meta: {
+          query: query,
+          totalCount: response.data.total_count,
+          incompleteResults: response.data.incomplete_results,
+          firstPage: response.headers.link?.includes('rel="first"')
+            ? response.headers.link.match(/<(.*)>; rel=\"first\"/)![1]
+            : "",
+          lastPage: response.headers.link?.includes('rel="last"')
+            ? response.headers.link.match(/<(.*)>; rel=\"last\"/)![1]
+            : "",
+          prevPage: response.headers.link?.includes('rel="prev"')
+            ? response.headers.link.match(/<(.*)>; rel=\"prev\"/)![1]
+            : "",
+          nextPage: response.headers.link?.includes('rel="next"')
+            ? response.headers.link.match(/<(.*)>; rel=\"next\"/)![1]
+            : "",
+          page: page,
+          perPage: perPage,
+        },
+      });
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(true);
@@ -28,41 +50,28 @@ export function useSearchRepositories() {
     }
   };
 
-  const parseLinkHeader = (header: string | null) => {
-    if (!header) return;
-    const links: SearchRepositoriesHeaderLinkDto = {
-      first: "",
-      last: "",
-      prev: "",
-      next: "",
+  const convertItem = (
+    item: SearchRepositoriesResDtoApi["items"][number],
+  ): RepositoriesDetailItemDto => {
+    return {
+      id: item.id,
+      name: item.name,
+      avatarUrl: item.owner.avatar_url,
+      language: item.language,
+      stargazersCount: item.stargazers_count,
+      watchersCount: item.watchers_count,
+      forksCount: item.forks_count,
+      issuesCount: item.issues_count,
     };
-    const linkHeaders = header.split(",");
-    linkHeaders.forEach((linkHeader) => {
-      const match = linkHeader.match(/<(.*)>; rel="(.*)"/);
-      if (match) {
-        if (linkHeader.includes(`rel=\"next\"`)) {
-          links.next = match[1];
-        }
-        if (linkHeader.includes(`rel=\"last\"`)) {
-          links.last = match[1];
-        }
-        if (linkHeader.includes(`rel=\"prev\"`)) {
-          links.prev = match[1];
-        }
-        if (linkHeader.includes(`rel=\"first\"`)) {
-          links.first = match[1];
-        }
-      }
-    });
-    return links;
   };
+
   return {
     query,
     setQuery,
     repositories,
     loading,
     error,
-    links,
+    meta,
     handleSearch,
   };
 }

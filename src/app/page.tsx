@@ -5,7 +5,7 @@ import Header from "../components/header";
 import { useSearchRepositories } from "../hooks/useSearchRepositories";
 
 export default function Home() {
-  const { query, setQuery, repositories, loading, error, links, handleSearch } =
+  const { query, setQuery, repositories, loading, error, meta, handleSearch } =
     useSearchRepositories();
   return (
     <div
@@ -34,19 +34,33 @@ export default function Home() {
         </div>
         {loading && <p>検索中...</p>}
         {error && <p>エラーが発生しました</p>}
+        <div className="flex w-full row mb-4">
+          <button className="flex-shrink-0 border rounded-md px-8 mr-8">
+            {meta?.firstPage}
+          </button>
+          <button className="flex-shrink-0 border rounded-md px-8 mr-8">
+            {meta?.prevPage}
+          </button>
+          <button className="flex-shrink-0 border rounded-md px-8 mr-8">
+            {meta?.nextPage}
+          </button>
+          <button className="flex-shrink-0 border rounded-md px-8 mr-8">
+            {meta?.lastPage}
+          </button>
+        </div>
         {repositories &&
-          repositories.items.map((item) => (
+          Object.values(repositories).map((item) => (
             <div
               className="flex w-full border rounded-md p-2 m-2"
               key={item.id}
             >
               <Link
-                href="detail"
+                href={`/detail/${item.id}`}
                 className="flex w-full row items-center"
                 key={item.id}
               >
                 <img
-                  src={item.owner.avatar_url}
+                  src={item.avatarUrl}
                   className="w-24 h-24 rounded-full object-cover mr-4"
                 ></img>
                 <p className="text-lg font-semibold">{item.name}</p>
