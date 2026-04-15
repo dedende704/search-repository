@@ -35,5 +35,9 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
-タイトルはヘッダーで共通化
-画面遷移は今回は単純なシステムなので高速で簡単に実装できるLinkを採用しました。
+## 実装内容
+
+- タイトルはヘッダーで共通化しました。
+- 画面遷移は今回は単純なシステムなので高速で簡単に実装できるLinkを採用しました。
+- ページングもつけてワンクリックで前後のページに移動できるようにしました。
+- テストはjestを使用しました。
