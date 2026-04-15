@@ -10,7 +10,13 @@ export async function searchRepositories(
       `https://api.github.com/search/repositories?q=${query}&sort=stars&order=desc&page=${page}&per_page=${perPage}`,
     );
     if (!response.ok) {
-      throw new Error("Network response was not ok");
+      if (response.status === 422) {
+        throw new Error("Invalid request");
+      }
+      if (response.status === 503) {
+        throw new Error("Service unavailable");
+      }
+      throw new Error(`HTTP error: ${response.status}`);
     }
     const linkHeader = response.headers.get("link");
     const data: SearchRepositoriesResDtoApi = await response.json();

@@ -8,5 +8,5 @@ export type SearchRepositoriesItemDtoApi = {
   stargazers_count: number;
   watchers_count: number;
   forks_count: number;
-  issues_count: number;
+  open_issues_count: number;
 };

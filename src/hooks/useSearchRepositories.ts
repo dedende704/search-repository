@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SearchRepositoriesResDtoApi } from "../types/SearchRepositoriesResDtoApi";
 import { searchRepositories } from "../api/searchApi";
 import { useRepositoriesStore } from "../types/RepositoriesStore";
@@ -6,15 +6,18 @@ import { RepositoriesDetailItemDto } from "../types/RepositoriesDetailItemDto";
 
 export function useSearchRepositories() {
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(30);
   const { repositories, meta, setSearchResult } = useRepositoriesStore();
 
+  /**
+   * 検索処理
+   */
   const handleSearch = async () => {
     if (!query) return;
-    setLoading(true);
+    setIsLoading(true);
     setError(false);
     try {
       const response = await searchRepositories(query, page, perPage);
@@ -24,18 +27,10 @@ export function useSearchRepositories() {
           query: query,
           totalCount: response.data.total_count,
           incompleteResults: response.data.incomplete_results,
-          firstPage: response.headers.link?.includes('rel="first"')
-            ? response.headers.link.match(/<(.*)>; rel=\"first\"/)![1]
-            : "",
-          lastPage: response.headers.link?.includes('rel="last"')
-            ? response.headers.link.match(/<(.*)>; rel=\"last\"/)![1]
-            : "",
-          prevPage: response.headers.link?.includes('rel="prev"')
-            ? response.headers.link.match(/<(.*)>; rel=\"prev\"/)![1]
-            : "",
-          nextPage: response.headers.link?.includes('rel="next"')
-            ? response.headers.link.match(/<(.*)>; rel=\"next\"/)![1]
-            : "",
+          firstPage: getPageFromLink(response.headers.link, "first") ?? "",
+          lastPage: getPageFromLink(response.headers.link, "last") ?? "",
+          prevPage: getPageFromLink(response.headers.link, "prev") ?? "",
+          nextPage: getPageFromLink(response.headers.link, "next") ?? "",
           page: page,
           perPage: perPage,
         },
@@ -46,10 +41,49 @@ export function useSearchRepositories() {
         console.error(error);
       }
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
+  /**
+   * ページ変更処理
+   * @param url URL
+   */
+  const handlePageChange = async (page: string) => {
+    if (!page) return;
+    const pageNumber = Number(page);
+    setPage(pageNumber);
+  };
+
+  /**
+   * ページ変更で検索処理が発火する
+   */
+  useEffect(() => {
+    handleSearch();
+  }, [page]);
+
+  /**
+   * リンクヘッダーからページ番号を取得する
+   * @param link リンクヘッダー
+   * @param rel リレーション
+   * @returns ページ番号
+   */
+  const getPageFromLink = (link: string | null, rel: string) => {
+    if (!link) return null;
+
+    const match = link.match(new RegExp(`<([^>]+)>; rel="${rel}"`));
+    if (!match) return null;
+
+    const url = new URL(match[1], "https://api.github.com/search/repositories");
+
+    return url.searchParams.get("page");
+  };
+
+  /**
+   * 取得結果をDTOに変換する
+   * @param item 取得結果
+   * @returns DTO
+   */
   const convertItem = (
     item: SearchRepositoriesResDtoApi["items"][number],
   ): RepositoriesDetailItemDto => {
@@ -61,7 +95,7 @@ export function useSearchRepositories() {
       stargazersCount: item.stargazers_count,
       watchersCount: item.watchers_count,
       forksCount: item.forks_count,
-      issuesCount: item.issues_count,
+      openIssuesCount: item.open_issues_count,
     };
   };
 
@@ -69,9 +103,16 @@ export function useSearchRepositories() {
     query,
     setQuery,
     repositories,
-    loading,
+    isLoading,
     error,
     meta,
+    page,
+    setPage,
+    perPage,
+    setPerPage,
     handleSearch,
+    handlePageChange,
+    getPageFromLink,
+    convertItem,
   };
 }

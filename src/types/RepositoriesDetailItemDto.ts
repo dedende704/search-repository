@@ -6,5 +6,5 @@ export type RepositoriesDetailItemDto = {
   stargazersCount: number;
   watchersCount: number;
   forksCount: number;
-  issuesCount: number;
+  openIssuesCount: number;
 };
